@@ -1,0 +1,11 @@
+fam CORNO Joseph_Marie_Vincent + THOMAS Marie_Julienne
+beg
+- h Pierre_Bernard_Henri
+- f Marie_Claire
+end
+
+rel CORNO Pierre_Bernard_Henri
+beg
+- godp fath: ADRIEN Marie_Elisabeth
+- godp moth: CAYEUX Christophe_René_Raoul
+end
