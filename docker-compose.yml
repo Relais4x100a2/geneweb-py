@@ -1,0 +1,42 @@
+# Lancement local de l'API GeneWeb-py (build multi-étape : voir Dockerfile).
+#
+# Variables d'environnement utiles (voir README, section Docker) :
+#   GENEWEB_HOST_PORT   Port publié sur la machine hôte (défaut : 8000)
+#   ALLOWED_ORIGINS     Origines CORS autorisées, séparées par des virgules
+#   CORS_ORIGINS        Alias historique de ALLOWED_ORIGINS (priorité moindre)
+#   GENEWEB_MAX_UPLOAD_BYTES  Taille max des uploads HTTP (octets)
+
+services:
+  geneweb-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: geneweb-py-api:local
+    ports:
+      - "${GENEWEB_HOST_PORT:-8000}:8000"
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      GENEWEB_MAX_UPLOAD_BYTES: ${GENEWEB_MAX_UPLOAD_BYTES:-}
+    # run_api.py positionne GENEWEB_API_ENV avant le chargement de l'application.
+    command:
+      - python
+      - run_api.py
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --env
+      - prod
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

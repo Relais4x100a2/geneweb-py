@@ -73,6 +73,39 @@ uvicorn.run(app, host="0.0.0.0", port=8000)
 
 **CORS (déploiement)** : définir `GENEWEB_API_ENV=prod` (ou lancer `python run_api.py --env prod`, qui positionne cette variable avant le chargement de l’app) et lister les origines autorisées dans `ALLOWED_ORIGINS` (URLs séparées par des virgules, ex. `https://app.example.com,https://admin.example.com`). En production, tant que ni `ALLOWED_ORIGINS` ni `CORS_ORIGINS` ne sont définies, aucune origine cross-origin n’est autorisée par défaut. La variable `CORS_ORIGINS` reste prise en charge pour compatibilité, mais `ALLOWED_ORIGINS` est prioritaire.
 
+### Déploiement avec Docker
+
+L’image est construite en **multi-stage** : une étape installe le paquet et l’extra `[api]` dans un environnement virtuel, l’image finale repose sur `python:3.12-slim` et ne contient que le runtime et `run_api.py`.
+
+**Build et exécution ponctuelle :**
+
+```bash
+docker build -t geneweb-py-api:local .
+docker run --rm -p 8000:8000 \
+  -e ALLOWED_ORIGINS="http://localhost:3000,http://127.0.0.1:3000" \
+  geneweb-py-api:local
+```
+
+**Compose (démarrage local) :**
+
+```bash
+docker compose up --build
+```
+
+**Variables d’environnement utiles :**
+
+| Variable | Rôle | Notes |
+|----------|------|--------|
+| `GENEWEB_HOST_PORT` | Port exposé sur l’hôte (Compose uniquement) | Défaut : `8000` (fichier `docker-compose.yml`) |
+| `GENEWEB_API_ENV` | Mode API : `dev`, `test`, `prod` | Avec l’image fournie, `run_api.py` est lancé avec `--env prod`, ce qui positionne `GENEWEB_API_ENV` avant le chargement de l’app |
+| `ALLOWED_ORIGINS` | Origines CORS autorisées (liste séparée par des virgules) | En `prod`, à définir si un front appelle l’API cross-origin ; sinon aucune origine cross-origin |
+| `CORS_ORIGINS` | Alias de `ALLOWED_ORIGINS` | Priorité moindre que `ALLOWED_ORIGINS` (voir `src/geneweb_py/api/limits.py`) |
+| `GENEWEB_MAX_UPLOAD_BYTES` | Taille maximale des requêtes / uploads HTTP | Défaut côté code : 50 Mo |
+
+**Workers Uvicorn :** l’entrée par défaut utilise `python run_api.py --env prod` : en production le script recycle le comportement documenté (plusieurs workers si non surchargé). Pour fixer un nombre de workers, surchargez la commande dans Compose ou `docker run`, par ex. : `python run_api.py --host 0.0.0.0 --port 8000 --env prod --workers 2`.
+
+**Santé :** l’image déclare un `HEALTHCHECK` sur `GET /health`.
+
 ### Rechercher une personne
 
 ```python
